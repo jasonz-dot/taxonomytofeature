@@ -1,0 +1,59 @@
+---
+title: "Combine separate taxonomy levels into features" 
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Read in data from exported asv table
+```{r}
+meta <- read.csv("meta.csv", stringsAsFactors = F)
+head(meta)
+```
+meta_tax stores sample taxonomy levels, meta_asv stores sample asv counts
+```{r}
+meta_tax <- meta[, c(1:6)]
+meta_asv <- meta[, c(7:14)]
+```
+Total asv counts of each sample
+```{r}
+asv <- colSums(meta_asv)
+```
+Create empty vector to store features
+```{r}
+features <- c()
+```
+Combine separate taxonomy levels into features
+```{r}
+for (i in 1:6){
+  catg <- names(table(meta_tax[, i]))
+  for (j in 1:length(catg)){
+    # k is the index of taxonomy level in meta_tax table
+    k <- which(meta_tax[, i] %in% catg[j])
+    feature_asv <- colSums(meta_asv[k, ])
+    # combine taxonomy into feature
+    for (m in 1:i){
+      if (m ==1){
+        feature <- meta_tax[k[1], m]
+      }else{
+        feature <- paste(feature, meta_tax[k[1], m], sep = "|")
+      }
+    }
+    
+    features <- c(features, feature)
+    # add feature based statistics to the asv table
+    meta_asv <- rbind(meta_asv, feature_asv/asv, stringsAsFactors=F)
+  }
+}
+```
+Combine features and their relative frequency into one table
+```{r}
+meta_feat <- cbind(features, meta_asv[-c(1:dim(meta)[1]), ], stringsAsFactors=F)
+```
+Results
+```{r}
+head(meta_feat)
+```
